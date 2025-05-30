@@ -2,13 +2,11 @@ import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-# Глобальные переменные для хранения справочников
 directors_list = []
 genres_list = []
 languages_list = []
 countries_list = []
 
-# === Создание базы данных и таблиц ===
 def create_database():
     conn = sqlite3.connect('movies.db')
     cursor = conn.cursor()
@@ -52,21 +50,7 @@ def create_database():
     );
     """)
 
-    # Заполнение справочников начальными данными, если пусто
-    def insert_if_empty(table, values):
-        cursor.execute(f"SELECT COUNT(*) FROM {table}")
-        if cursor.fetchone()[0] == 0:
-            cursor.executemany(f"INSERT INTO {table} (name) VALUES (?)", [(v,) for v in values])
 
-    insert_if_empty('languages', ['English', 'Estonian', 'Russian'])
-    insert_if_empty('countries', ['USA', 'UK', 'Estonia'])
-    insert_if_empty('genres', ['Drama', 'Sci-Fi', 'Crime'])
-    insert_if_empty('directors', ['Francis Ford Coppola', 'Christopher Nolan', 'Quentin Tarantino'])
-
-    conn.commit()
-    conn.close()
-
-# === Загрузка справочников в глобальные списки ===
 def load_reference_data():
     global directors_list, genres_list, languages_list, countries_list
     conn = sqlite3.connect('movies.db')
@@ -86,7 +70,6 @@ def load_reference_data():
 
     conn.close()
 
-# === Загрузка фильмов в таблицу ===
 def load_data(tree, search=""):
     conn = sqlite3.connect('movies.db')
     cursor = conn.cursor()
@@ -112,7 +95,6 @@ def load_data(tree, search=""):
         tree.insert("", "end", values=row[1:], iid=row[0])
     conn.close()
 
-# === Получение id по имени или создание записи в справочнике ===
 def get_or_create_id(table, name):
     conn = sqlite3.connect('movies.db')
     cursor = conn.cursor()
@@ -128,7 +110,6 @@ def get_or_create_id(table, name):
     conn.close()
     return new_id
 
-# === Валидация данных ===
 def validate_input(entries):
     title = entries["Pealkiri"].get().strip()
     year = entries["Aasta"].get().strip()
@@ -154,7 +135,6 @@ def validate_input(entries):
             return False
     return True
 
-# === Добавление нового фильма ===
 def insert_movie(entries, win):
     if not validate_input(entries):
         return
@@ -188,7 +168,6 @@ def insert_movie(entries, win):
     load_reference_data()
     load_data(tree)
 
-# === Окно добавления фильма ===
 def open_add_window():
     win = tk.Toplevel(root)
     win.title("Lisa film")   
@@ -220,7 +199,6 @@ def open_add_window():
 
     tk.Button(win, text="Lisa", command=lambda: insert_movie(entries, win)).grid(row=len(labels), column=0, columnspan=2, pady=10)
 
-# === Обновление фильма ===
 def update_movie(record_id, entries, win):
     if not validate_input(entries):
         return
@@ -255,7 +233,6 @@ def update_movie(record_id, entries, win):
     load_reference_data()
     load_data(tree)
 
-# === Окно редактирования фильма ===
 def open_edit_window():
     selected = tree.selection()
     if not selected:
@@ -320,7 +297,6 @@ def open_edit_window():
 
     tk.Button(win, text="Salvesta", command=lambda: update_movie(record_id, entries, win)).grid(row=len(labels), column=0, columnspan=2, pady=10)
 
-# === Удаление фильма ===
 def delete_movie():
     selected = tree.selection()
     if not selected:
@@ -336,14 +312,12 @@ def delete_movie():
         load_data(tree)
         messagebox.showinfo("Valmis", "Kirje kustutatud.")
 
-# === Добавление элементов в справочники ===
 def add_reference_item(table_name, list_name, root_window):
     def do_add():
         val = entry.get().strip()
         if not val:
             messagebox.showerror("Viga", "Tühi väärtus pole lubatud.")
             return
-        # Проверка дублирования
         if val in globals()[list_name]:
             messagebox.showwarning("Tähelepanu", f"{val} juba nimekirjas.")
             return
@@ -373,18 +347,12 @@ def add_reference_item(table_name, list_name, root_window):
     entry.pack(padx=10, pady=5)
     tk.Button(add_win, text="Lisa", command=do_add).pack(padx=10, pady=10)
 
-# === Обновление глобальных списков и перезагрузка таблицы ===
 def refresh_reference_lists():
     load_reference_data()
-
-# === Обновить выпадающие списки в окнах добавления и редактирования (если открыты) ===
 def update_reference_lists_in_add_edit_windows():
-    # В данном простом варианте не реализуем — чтобы обновлять динамически, нужно хранить ссылки на окна и виджеты.
-    # Можно доработать при необходимости.
     pass
 
 # === Окно для управления справочниками ===
-# === Удаление элемента из справочника ===
 def delete_reference_item(table_name, list_name, win, listbox):
     selected_indices = listbox.curselection()
     if not selected_indices:
@@ -396,7 +364,6 @@ def delete_reference_item(table_name, list_name, win, listbox):
     if messagebox.askyesno("Kinnitus", f"Kustuta '{val}' {table_name}'st?"):
         conn = sqlite3.connect('movies.db')
         cursor = conn.cursor()
-        # Удаляем элемент по имени
         try:
             cursor.execute(f"DELETE FROM {table_name} WHERE name=?", (val,))
             conn.commit()
@@ -406,39 +373,44 @@ def delete_reference_item(table_name, list_name, win, listbox):
             return
         conn.close()
 
-        # Обновляем список в памяти
         globals()[list_name].remove(val)
         listbox.delete(selected_index)
         messagebox.showinfo("Õnnestus", f"'{val}' kustutatud {table_name}'st.")
 
-        # Обновляем таблицу фильмов и справочники
         refresh_reference_lists()
         load_data(tree)
 
-# === Lubatud andmeid===
+# === Lubatud andmeid=== andmehaldus
 def open_manage_reference_window():
     win = tk.Toplevel(root)
     win.title("Andmehaldus")
 
-    # Функция создания фрейма с Listbox, кнопками Добавить и Удалить для каждого справочника
     def create_ref_section(table_name, list_name, row):
         tk.Label(win, text=table_name.capitalize()).grid(row=row*2, column=0, sticky="w", padx=10, pady=2)
-        listbox = tk.Listbox(win, height=6, width=30)
-        listbox.grid(row=row*2+1, column=0, padx=10, pady=2)
-        # Заполнение listbox текущими значениями
+    
+        frame_list = tk.Frame(win)
+        frame_list.grid(row=row*2+1, column=0, padx=10, pady=2)
+
+        listbox = tk.Listbox(frame_list, height=6, width=30)
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+
+        scrollbar = tk.Scrollbar(frame_list, orient=tk.VERTICAL, command=listbox.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        listbox.config(yscrollcommand=scrollbar.set)
+
         for item in globals()[list_name]:
             listbox.insert(tk.END, item)
 
         btn_frame = tk.Frame(win)
         btn_frame.grid(row=row*2+1, column=1, padx=5)
 
-        btn_add = tk.Button(btn_frame, text="Lisa", width=12,
-                            command=lambda: add_reference_item(table_name, list_name, win))
+        btn_add = tk.Button(btn_frame, text="Lisa", width=12,command=lambda: add_reference_item(table_name, list_name, win))
         btn_add.pack(pady=2)
 
-        btn_del = tk.Button(btn_frame, text="Kustuta", width=12,
-                            command=lambda: delete_reference_item(table_name, list_name, win, listbox))
+        btn_del = tk.Button(btn_frame, text="Kustuta", width=12,command=lambda: delete_reference_item(table_name, list_name, win, listbox))
         btn_del.pack(pady=2)
+
 
     create_ref_section("directors", "directors_list", 0)
     create_ref_section("genres", "genres_list", 1)
@@ -458,10 +430,10 @@ tk.Button(frame_buttons, text="Muuda filmi", command=open_edit_window).grid(row=
 tk.Button(frame_buttons, text="Kustuta film", command=delete_movie).grid(row=0, column=2, padx=5)
 tk.Button(frame_buttons, text="Halda andmeid ", command=open_manage_reference_window).grid(row=0, column=3, padx=5)
 
-
-# Поиск
+    
+#search
 search_var = tk.StringVar()
-tk.Label(root, text="Otsi:").pack()
+tk.Label(root, text="Otsi nimi jargi:").pack()
 search_entry = tk.Entry(root, textvariable=search_var, width=50)
 search_entry.pack()
 
@@ -470,7 +442,7 @@ def on_search_change(*args):
 
 search_var.trace_add('write', on_search_change)
 
-# Таблица с фильмами
+#tables
 columns = ["Pealkiri", "Režissöör", "Aasta", "Žanr", "Kestus", "Reiting", "Keel", "Riik", "Kirjeldus"]
 tree = ttk.Treeview(root, columns=columns, show="headings")
 
@@ -479,7 +451,6 @@ for col in columns:
     tree.column(col, width=100)
 tree.pack(expand=True, fill=tk.BOTH, pady=10)
 
-# Инициализация
 create_database()
 load_reference_data()
 load_data(tree)
